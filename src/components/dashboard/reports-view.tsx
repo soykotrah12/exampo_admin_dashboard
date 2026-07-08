@@ -4,17 +4,19 @@ import { useQuery } from '@tanstack/react-query';
 import { reportsApi } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/dashboard/page-states';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 type Row = Record<string, unknown>;
 
 export function ReportsView() {
-  const query = useQuery({ queryKey: ['reports'], queryFn: reportsApi.summary });
+  const query = useQuery({ queryKey: ['reports'], queryFn: reportsApi.summary, refetchInterval: 60_000 });
   const data = query.data ?? {};
   const growth = (data.growth as Row | undefined) ?? {};
   const topOrganizations = (data.topOrganizations as Row[] | undefined) ?? [];
 
   if (query.isLoading) return <Skeleton className="h-96" />;
+  if (query.isError) return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
 
   return (
     <div className="space-y-5">

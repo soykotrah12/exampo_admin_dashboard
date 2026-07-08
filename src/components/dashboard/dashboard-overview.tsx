@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { dashboardApi } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/dashboard/page-states';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { formatDate, formatNumber } from '@/lib/utils';
 
@@ -55,7 +56,11 @@ function RecentList({ title, items, type }: { title: string; items: Row[]; type:
 }
 
 export function DashboardOverview() {
-  const query = useQuery({ queryKey: ['dashboard-summary'], queryFn: dashboardApi.summary });
+  const query = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: dashboardApi.summary,
+    refetchInterval: 30_000,
+  });
   const data = query.data ?? {};
   const counts = (data.counts as Record<string, unknown> | undefined) ?? {};
   const recentOrganizations = (data.recentOrganizations as Row[] | undefined) ?? [];
@@ -74,6 +79,8 @@ export function DashboardOverview() {
       </div>
     );
   }
+
+  if (query.isError) return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
 
   return (
     <div className="space-y-5">

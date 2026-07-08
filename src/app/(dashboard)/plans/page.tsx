@@ -1,5 +1,5 @@
-import { AdminResourcePage } from '@/components/dashboard/admin-resource-page';
+import { PlansView } from '@/components/dashboard/plans-view';
 
 export default function PlansPage() {
-  return <AdminResourcePage resource="plans" />;
+  return <PlansView />;
 }

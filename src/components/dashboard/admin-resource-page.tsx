@@ -65,6 +65,7 @@ type ResourceConfig = {
   filters?: Filter[];
   columns: Column[];
   actions?: RowAction[];
+  invalidateKeys?: string[];
 };
 
 function text(value: unknown, fallback = 'Not provided') {
@@ -114,6 +115,19 @@ function arrayCount(row: Row, key: string) {
   return Array.isArray(value) ? value.length : Number(value || 0);
 }
 
+function inactiveDuration(value: unknown) {
+  if (!value) return 'Never active';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return 'Never active';
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const days = Math.max(Math.floor((today - start) / 86400000), 0);
+  if (days === 0) return 'Active today';
+  if (days >= 30) return 'Inactive 30+ days';
+  return `Inactive ${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
 const statusFilter: Filter = {
   key: 'status',
   label: 'Status',
@@ -141,12 +155,24 @@ const roleFilter: Filter = {
   ],
 };
 
+const inactiveFilter: Filter = {
+  key: 'inactiveDays',
+  label: 'Inactive',
+  options: [
+    { label: 'Any activity', value: '' },
+    { label: '7+ days', value: '7' },
+    { label: '30+ days', value: '30' },
+    { label: '90+ days', value: '90' },
+  ],
+};
+
 const configs: Record<string, ResourceConfig> = {
   organizations: {
     title: 'Organizations',
     description: 'Search, filter, inspect, suspend, and activate institutes across the platform.',
     queryKey: 'organizations',
     list: organizationsApi.list,
+    invalidateKeys: ['organizations', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Organization', render: orgCell, mobile: true },
@@ -170,17 +196,23 @@ const configs: Record<string, ResourceConfig> = {
     description: 'All platform accounts with role, organization, and access status.',
     queryKey: 'users',
     list: usersApi.list,
-    filters: [roleFilter, statusFilter],
+    invalidateKeys: ['users', 'dashboard-summary'],
+    filters: [roleFilter, { ...statusFilter, options: [...statusFilter.options, { label: 'Deleted', value: 'deleted' }] }, inactiveFilter],
     columns: [
       { header: 'User', render: userCell, mobile: true },
       { header: 'Role', render: (row) => labelize(text(row.role)) },
       { header: 'Organization', render: (row) => nested(row, 'organization.name') },
-      { header: 'Status', render: (row) => <StatusBadge value={row.isActive === false ? 'blocked' : 'active'} /> },
+      { header: 'Status', render: (row) => <StatusBadge value={row.deletedAt ? 'deleted' : row.isActive === false ? 'blocked' : 'active'} /> },
+      { header: 'Last active', render: (row) => formatDate(row.lastActiveAt as string) },
+      { header: 'Inactive for', render: (row) => inactiveDuration(row.lastActiveAt) },
       { header: 'Created', render: (row) => formatDate(row.createdAt as string) },
     ],
     actions: [
       { label: 'Block', confirmLabel: 'Block', description: 'Block this user account.', destructive: true, hide: (row) => row.isActive === false, run: (row) => usersApi.block(id(row)) },
       { label: 'Unblock', confirmLabel: 'Unblock', description: 'Allow this user to sign in again.', hide: (row) => row.isActive !== false, run: (row) => usersApi.unblock(id(row)) },
+      { label: 'Delete email', confirmLabel: 'Delete email', description: 'Anonymize this user email address. This cannot be undone automatically if another account takes the old email.', destructive: true, hide: (row) => Boolean(row.deletedAt), run: (row) => usersApi.deleteEmail(id(row)) },
+      { label: 'Delete account', confirmLabel: 'Delete account', description: 'Soft-delete this account, block access, and anonymize the email address.', destructive: true, hide: (row) => Boolean(row.deletedAt), run: (row) => usersApi.delete(id(row)) },
+      { label: 'Restore', confirmLabel: 'Restore', description: 'Restore this soft-deleted account.', hide: (row) => !row.deletedAt, run: (row) => usersApi.restore(id(row)) },
     ],
   },
   teachers: {
@@ -188,6 +220,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Teachers across every organization, including assignments and access status.',
     queryKey: 'teachers',
     list: teachersApi.list,
+    invalidateKeys: ['teachers', 'users', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Teacher', render: userCell, mobile: true },
@@ -208,6 +241,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Students, organization membership, batches, submissions, and score summaries.',
     queryKey: 'students',
     list: studentsApi.list,
+    invalidateKeys: ['students', 'users', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Student', render: userCell, mobile: true },
@@ -223,6 +257,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'All services across organizations with batch, student, teacher, and exam counts.',
     queryKey: 'services',
     list: servicesApi.list,
+    invalidateKeys: ['services', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Service', render: (row) => <span className="font-semibold">{text(row.name)}</span>, mobile: true },
@@ -243,6 +278,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Batch enrollment and activity across services and organizations.',
     queryKey: 'batches',
     list: batchesApi.list,
+    invalidateKeys: ['batches', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Batch', render: (row) => <span className="font-semibold">{text(row.name)}</span>, mobile: true },
@@ -264,6 +300,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Exam slots, status, assigned batches, result state, and submission volume.',
     queryKey: 'exams',
     list: examsApi.list,
+    invalidateKeys: ['exams', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Exam', render: (row) => <span className="font-semibold">{text(row.title)}</span>, mobile: true },
@@ -283,6 +320,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Submitted exam attempts and published result status across the platform.',
     queryKey: 'submissions',
     list: submissionsApi.list,
+    invalidateKeys: ['submissions', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Student', render: (row) => nested(row, 'student.name'), mobile: true },
@@ -315,6 +353,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Plan pricing and limit controls for organization subscriptions.',
     queryKey: 'plans',
     list: plansApi.list,
+    invalidateKeys: ['plans', 'subscriptions'],
     filters: [statusFilter],
     columns: [
       { header: 'Plan', render: (row) => <span className="font-semibold">{text(row.name)}</span>, mobile: true },
@@ -334,6 +373,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Organization subscriptions, assigned plans, and billing status.',
     queryKey: 'subscriptions',
     list: subscriptionsApi.list,
+    invalidateKeys: ['subscriptions', 'dashboard-summary', 'organizations'],
     filters: [statusFilter],
     columns: [
       { header: 'Organization', render: orgCell, mobile: true },
@@ -349,6 +389,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Upgrade and payment requests awaiting admin review.',
     queryKey: 'payments',
     list: paymentsApi.list,
+    invalidateKeys: ['payments', 'subscriptions', 'organizations', 'dashboard-summary'],
     filters: [statusFilter],
     columns: [
       { header: 'Organization', render: (row) => nested(row, 'organization.name'), mobile: true },
@@ -369,6 +410,7 @@ const configs: Record<string, ResourceConfig> = {
     description: 'Organization verification requests with uploaded document review links.',
     queryKey: 'verification',
     list: verificationApi.list,
+    invalidateKeys: ['verification', 'organizations', 'dashboard-summary'],
     filters: [{ key: 'status', label: 'Status', options: [{ label: 'All', value: '' }, { label: 'Pending', value: 'pending' }, { label: 'Verified', value: 'verified' }, { label: 'Rejected', value: 'rejected' }] }],
     columns: [
       { header: 'Organization', render: orgCell, mobile: true },
@@ -396,12 +438,15 @@ export function AdminResourcePage({ resource }: { resource: keyof typeof configs
   const query = useQuery({
     queryKey: [config.queryKey, params],
     queryFn: () => config.list(params),
+    refetchInterval: 60_000,
   });
   const mutation = useMutation({
     mutationFn: (action: { row: Row; action: RowAction }) => action.action.run(action.row),
     onSuccess: (_data, variables) => {
       toast.success(`${variables.action.label} completed.`);
-      queryClient.invalidateQueries({ queryKey: [config.queryKey] });
+      (config.invalidateKeys ?? [config.queryKey]).forEach((key) => {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      });
     },
     onError: (error) => toast.error(error.message || 'Something went wrong'),
   });

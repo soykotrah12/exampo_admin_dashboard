@@ -1,5 +1,5 @@
-import { AdminResourcePage } from '@/components/dashboard/admin-resource-page';
+import { SubscriptionsView } from '@/components/dashboard/subscriptions-view';
 
 export default function SubscriptionsPage() {
-  return <AdminResourcePage resource="subscriptions" />;
+  return <SubscriptionsView />;
 }

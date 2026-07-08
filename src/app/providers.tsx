@@ -1,6 +1,6 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { keepPreviousData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { ReactNode, useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
@@ -22,6 +22,9 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             retry: 1,
             staleTime: 30_000,
+            refetchOnWindowFocus: true,
+            refetchOnReconnect: true,
+            placeholderData: keepPreviousData,
           },
         },
       }),

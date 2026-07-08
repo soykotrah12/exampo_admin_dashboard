@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs } from '@/components/ui/tabs';
+import { ErrorState } from '@/components/dashboard/page-states';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { formatDate, formatNumber } from '@/lib/utils';
 
@@ -34,11 +35,12 @@ function list(name: string, items: Row[] = []) {
 
 export function OrganizationDetails({ id }: { id: string }) {
   const [tab, setTab] = useState('overview');
-  const query = useQuery({ queryKey: ['organization-details', id], queryFn: () => organizationsApi.details(id) });
+  const query = useQuery({ queryKey: ['organization-details', id], queryFn: () => organizationsApi.details(id), refetchInterval: 60_000 });
   const data = (query.data ?? {}) as Row;
   const counts = (data.counts as Row | undefined) ?? {};
 
   if (query.isLoading) return <Skeleton className="h-96" />;
+  if (query.isError) return <ErrorState message={query.error.message} onRetry={() => query.refetch()} />;
 
   return (
     <div className="space-y-5">

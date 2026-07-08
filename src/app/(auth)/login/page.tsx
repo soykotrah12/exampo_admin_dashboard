@@ -15,6 +15,8 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const callbackUrl = params.get('callbackUrl');
+  const destination = callbackUrl && callbackUrl !== '/' ? callbackUrl : '/dashboard';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,7 +25,7 @@ function LoginForm() {
       email,
       password,
       redirect: false,
-      callbackUrl: params.get('callbackUrl') || '/dashboard',
+      callbackUrl: destination,
     });
     setLoading(false);
     if (result?.error) {
@@ -31,7 +33,8 @@ function LoginForm() {
       return;
     }
     toast.success('Welcome back.');
-    router.replace(result?.url || '/dashboard');
+    const nextUrl = result?.url ? new URL(result.url, window.location.origin) : null;
+    router.replace(nextUrl?.pathname === '/' ? '/dashboard' : `${nextUrl?.pathname || destination}${nextUrl?.search || ''}`);
   }
 
   return (

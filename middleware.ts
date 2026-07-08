@@ -1,20 +1,23 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from 'next-auth/middleware';
+import { NextRequest, NextResponse } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    const role = req.nextauth.token?.role;
-    if (role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => Boolean(token),
-    },
-  },
-);
+const sessionCookieNames = [
+  'next-auth.session-token',
+  '__Secure-next-auth.session-token',
+];
+
+export default function middleware(req: NextRequest) {
+  const hasSessionToken = sessionCookieNames.some((name) =>
+    Boolean(req.cookies.get(name)?.value),
+  );
+  if (hasSessionToken) return NextResponse.next();
+
+  const loginUrl = new URL('/login', req.url);
+  loginUrl.searchParams.set(
+    'callbackUrl',
+    `${req.nextUrl.pathname}${req.nextUrl.search}`,
+  );
+  return NextResponse.redirect(loginUrl);
+}
 
 export const config = {
   matcher: [

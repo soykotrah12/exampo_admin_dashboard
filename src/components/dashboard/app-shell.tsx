@@ -15,6 +15,7 @@ import {
   NotebookTabs,
   PackageCheck,
   Receipt,
+  RefreshCcw,
   Search,
   Settings,
   ShieldCheck,
@@ -22,6 +23,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -49,6 +51,25 @@ const nav = [
   { href: '/reports', label: 'Reports', icon: FileBarChart },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
+
+const routeQueryKeys: Record<string, string[]> = {
+  '/dashboard': ['dashboard-summary'],
+  '/organizations': ['organizations'],
+  '/users': ['users'],
+  '/teachers': ['teachers'],
+  '/students': ['students'],
+  '/services': ['services'],
+  '/batches': ['batches'],
+  '/exams': ['exams'],
+  '/submissions': ['submissions'],
+  '/rankings': ['rankings'],
+  '/plans': ['plans'],
+  '/subscriptions': ['subscriptions'],
+  '/payments': ['payments'],
+  '/verification': ['verification'],
+  '/reports': ['reports'],
+  '/settings': ['admin-profile'],
+};
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -88,12 +109,25 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const { data } = useSession();
+  const activeQueryKeys = useMemo(() => {
+    const route = Object.keys(routeQueryKeys).find((path) => pathname === path || pathname.startsWith(`${path}/`));
+    return route ? routeQueryKeys[route] : ['dashboard-summary'];
+  }, [pathname]);
+  const isFetching = useIsFetching({ predicate: (query) => activeQueryKeys.includes(String(query.queryKey[0])) });
   const title = useMemo(() => {
     const found = nav.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
     return found?.label ?? 'Dashboard';
   }, [pathname]);
+
+  const refreshCurrentPage = async () => {
+    setRefreshing(true);
+    await Promise.all(activeQueryKeys.map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
+    setRefreshing(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,6 +162,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Search className="h-4 w-4" />
             Use page search and filters
           </div>
+          <Button variant="outline" size="sm" onClick={refreshCurrentPage} disabled={refreshing || Boolean(isFetching)}>
+            <RefreshCcw className={`h-4 w-4 ${refreshing || isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
           <div className="flex items-center gap-3">
             <Avatar name={data?.user?.name ?? 'Admin'} src={data?.user?.avatarUrl} />
             <div className="hidden text-right sm:block">

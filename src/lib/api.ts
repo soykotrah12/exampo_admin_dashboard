@@ -1,7 +1,7 @@
 import axios, { type AxiosError } from 'axios';
 import { toast } from 'sonner';
 
-const baseURL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8001/api';
+const baseURL = process.env.NEXT_PUBLIC_BASE_URL;
 let accessToken: string | undefined;
 
 export const apiClient = axios.create({
@@ -55,9 +55,16 @@ const list = <T = Record<string, unknown>>(path: string, params?: ListParams) =>
 const details = <T>(path: string) => unwrap<T>(apiClient.get(path));
 const patch = <T>(path: string, body?: unknown) => unwrap<T>(apiClient.patch(path, body ?? {}));
 const post = <T>(path: string, body?: unknown) => unwrap<T>(apiClient.post(path, body ?? {}));
+const remove = <T>(path: string) => unwrap<T>(apiClient.delete(path));
 
 export const dashboardApi = {
   summary: () => details<Record<string, unknown>>('/admin/dashboard-summary'),
+};
+
+export const adminProfileApi = {
+  me: () => details<Record<string, unknown>>('/admin/me'),
+  updateProfile: (body: unknown) => patch<Record<string, unknown>>('/admin/me', body),
+  changePassword: (body: unknown) => patch<Record<string, unknown>>('/admin/me/password', body),
 };
 
 export const organizationsApi = {
@@ -73,6 +80,9 @@ export const usersApi = {
   details: (id: string) => details<Record<string, unknown>>(`/admin/users/${id}`),
   block: (id: string) => patch(`/admin/users/${id}/block`),
   unblock: (id: string) => patch(`/admin/users/${id}/unblock`),
+  deleteEmail: (id: string) => patch(`/admin/users/${id}/delete-email`),
+  delete: (id: string) => remove(`/admin/users/${id}`),
+  restore: (id: string) => patch(`/admin/users/${id}/restore`),
 };
 
 export const teachersApi = {
@@ -119,14 +129,25 @@ export const rankingsApi = {
 
 export const plansApi = {
   list: (params?: ListParams) => list('/admin/plans', params),
+  details: (id: string) => details<Record<string, unknown>>(`/admin/plans/${id}`),
   create: (body: unknown) => post('/admin/plans', body),
   update: (id: string, body: unknown) => patch(`/admin/plans/${id}`, body),
+  activate: (id: string) => patch(`/admin/plans/${id}/activate`),
   deactivate: (id: string) => patch(`/admin/plans/${id}/deactivate`),
+  delete: (id: string) => remove(`/admin/plans/${id}`),
 };
 
 export const subscriptionsApi = {
   list: (params?: ListParams) => list('/admin/subscriptions', params),
+  details: (id: string) => details<Record<string, unknown>>(`/admin/subscriptions/${id}`),
   update: (id: string, body: unknown) => patch(`/admin/subscriptions/${id}`, body),
+  changePlan: (id: string, body: unknown) => patch(`/admin/subscriptions/${id}/change-plan`, body),
+  cancel: (id: string, body: unknown) => patch(`/admin/subscriptions/${id}/cancel`, body),
+  refund: (id: string, body: unknown) => patch(`/admin/subscriptions/${id}/refund`, body),
+  extend: (id: string, body: unknown) => patch(`/admin/subscriptions/${id}/extend`, body),
+  activate: (id: string) => patch(`/admin/subscriptions/${id}/activate`),
+  deactivate: (id: string) => patch(`/admin/subscriptions/${id}/deactivate`),
+  addNote: (id: string, body: unknown) => patch(`/admin/subscriptions/${id}/note`, body),
 };
 
 export const paymentsApi = {
