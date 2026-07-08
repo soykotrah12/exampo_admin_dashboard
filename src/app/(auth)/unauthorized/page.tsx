@@ -15,9 +15,9 @@ export default function UnauthorizedPage() {
           <CardDescription>Only super admins can access the admin dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild className="w-full">
-            <Link href="/login">Back to login</Link>
-          </Button>
+          <Link href="/login">
+            <Button className="w-full">Back to login</Button>
+          </Link>
         </CardContent>
       </Card>
     </main>

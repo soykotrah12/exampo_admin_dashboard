@@ -51,7 +51,7 @@ const unwrap = async <T>(request: Promise<{ data: { data: T } | T }>): Promise<T
 
 export type ListParams = Record<string, string | number | undefined>;
 
-const list = <T>(path: string, params?: ListParams) => unwrap<Paginated<T>>(apiClient.get(path, { params }));
+const list = <T = Record<string, unknown>>(path: string, params?: ListParams) => unwrap<Paginated<T>>(apiClient.get(path, { params }));
 const details = <T>(path: string) => unwrap<T>(apiClient.get(path));
 const patch = <T>(path: string, body?: unknown) => unwrap<T>(apiClient.patch(path, body ?? {}));
 const post = <T>(path: string, body?: unknown) => unwrap<T>(apiClient.post(path, body ?? {}));
