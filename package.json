@@ -3,13 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
-  },
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start -H 0.0.0.0 -p $PORT"
+},
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",
     "@tanstack/react-query": "^5.101.2",
