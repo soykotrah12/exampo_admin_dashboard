@@ -1,10 +1,9 @@
+@import "tailwindcss";
 @config "../../tailwind.config.ts";
+@source "../";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
+:root,
+.dark {
   --background: 0 0% 2%;
   --foreground: 0 0% 98%;
   --card: 0 0% 5%;
@@ -26,7 +25,7 @@
 }
 
 body {
-  @apply min-h-screen bg-background text-foreground antialiased;
+  @apply min-h-screen bg-background font-sans text-foreground antialiased;
 }
 
 body::before {
