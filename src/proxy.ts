@@ -5,7 +5,7 @@ const sessionCookieNames = [
   '__Secure-next-auth.session-token',
 ];
 
-export default function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const hasSessionToken = sessionCookieNames.some((name) =>
     Boolean(req.cookies.get(name)?.value),
   );

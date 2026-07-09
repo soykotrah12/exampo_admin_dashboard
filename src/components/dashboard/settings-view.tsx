@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { signOut, useSession } from 'next-auth/react';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { adminProfileApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/avatar';
@@ -42,12 +42,7 @@ export function SettingsView() {
   });
 
   const profile = (profileQuery.data || session?.user || {}) as Profile;
-
-  useEffect(() => {
-    if (!editing) {
-      setProfileForm({ name: profile.name || '', email: profile.email || '' });
-    }
-  }, [editing, profile.name, profile.email]);
+  const currentProfileForm = { name: profile.name || '', email: profile.email || '' };
 
   const profileMutation = useMutation({
     mutationFn: adminProfileApi.updateProfile,
@@ -110,7 +105,15 @@ export function SettingsView() {
               <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">{profile.role || session?.role}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => setEditing(true)}>Edit Admin Profile</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setProfileForm(currentProfileForm);
+              setEditing(true);
+            }}
+          >
+            Edit Admin Profile
+          </Button>
         </CardContent>
       </Card>
 
