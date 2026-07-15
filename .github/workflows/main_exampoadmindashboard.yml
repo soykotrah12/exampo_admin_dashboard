@@ -33,7 +33,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          include-hidden-files: true
+          path: |
+            .next
+            node_modules
+            package.json
+            package-lock.json
+            next.config.mjs
+            server.mjs
+            public
 
   deploy:
     runs-on: ubuntu-latest
@@ -62,4 +70,11 @@ jobs:
           app-name: 'exampoAdminDashboard'
           slot-name: 'Production'
           package: .
+
+      - name: Configure Azure startup command
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            RESOURCE_GROUP=$(az webapp list --query "[?name=='exampoAdminDashboard'].resourceGroup | [0]" -o tsv)
+            az webapp config set --resource-group "$RESOURCE_GROUP" --name "exampoAdminDashboard" --startup-file "node server.mjs"
           

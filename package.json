@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
- "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start -H 0.0.0.0 -p $PORT"
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node server.mjs"
+  },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",
     "@tanstack/react-query": "^5.101.2",
